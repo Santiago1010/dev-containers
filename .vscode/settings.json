@@ -1,0 +1,74 @@
+{
+    "editor.fontFamily": "'Cascadia Code', 'Fira Code', Consolas, 'Courier New', monospace",
+    "editor.fontLigatures": true,
+    "terminal.integrated.fontFamily": "'Cascadia Mono', 'Fira Code', monospace",
+
+    "docker.commands.attach": false,
+    "docker.showStartPage": false,
+    "yaml.schemas": {
+        "kubernetes": ["/*.yaml", "/*.yml"]
+    },
+    "yaml.customTags": [
+        "!And",
+        "!And sequence",
+        "!If",
+        "!If sequence",
+        "!Not",
+        "!Not sequence",
+        "!Equals",
+        "!Equals sequence",
+        "!Or",
+        "!Or sequence",
+        "!FindInMap",
+        "!FindInMap sequence",
+        "!Base64",
+        "!Join",
+        "!Join sequence",
+        "!Cidr",
+        "!Ref",
+        "!Sub",
+        "!GetAtt",
+        "!GetAZs",
+        "!ImportValue",
+        "!Select",
+        "!Split"
+    ],
+
+    "remote.containers.dockerPath": "docker",
+    "remote.containers.defaultExtensions": [
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml"
+    ],
+
+    // Mejoras de editor para YAML/Docker
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "[yaml]": {
+        "editor.tabSize": 2,
+        "editor.autoIndent": "advanced",
+        "editor.formatOnType": true
+    },
+    "[dockerfile]": {
+        "editor.tabSize": 4,
+        "editor.quickSuggestions": {
+            "comments": "on",
+            "strings": "on",
+            "other": "on"
+        }
+    },
+
+    "editor.rulers": [80, 120],
+    "editor.wordWrap": "on",
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit"
+    },
+    "files.autoSave": "afterDelay",
+    "git.openRepositoryInParentFolders": "always",
+    "git.confirmSync": false,
+
+    "workbench.iconTheme": "material-icon-theme",
+    "workbench.colorTheme": "Default Dark Modern",
+    "editor.renderWhitespace": "boundary",
+    "editor.indentGuides": true,
+    "containers.commands.attach": false
+}

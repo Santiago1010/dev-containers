@@ -1,0 +1,211 @@
+services:
+  # LocalStack - Simulación de AWS
+  localstack:
+    container_name: dev-localstack
+    image: localstack/localstack:latest
+    
+    ports:
+      - "4566:4566"      # LocalStack edge port
+      - "8080:8080"      # LocalStack dashboard (opcional)
+      - "4510-4559:4510-4559"  # Puertos adicionales de servicios
+    
+    environment:
+      # Servicios AWS específicos que requieres
+      SERVICES: "s3,iam,sqs,ecr,ecs,lambda,apigateway,cloudwatch,stepfunctions,events,secretsmanager,ssm"
+      DEBUG: 1
+      
+      # Configuración de persistencia
+      PERSISTENCE: 1
+      
+      # Configuración de Lambda
+      LAMBDA_EXECUTOR: docker
+      LAMBDA_REMOTE_DOCKER: false
+      
+      # Configuración de Docker
+      DOCKER_HOST: unix:///var/run/docker.sock
+      
+      # Configuración de red
+      HOSTNAME_EXTERNAL: localhost
+      
+      # Configuración adicional
+      SKIP_INFRA_DOWNLOADS: 0
+      TMPDIR: /tmp
+      
+      # Para usar con AWS CLI
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      
+      # Configuraciones opcionales
+      EDGE_PORT: 4566
+      
+      # Configuración de logs
+      LS_LOG: trace
+      
+      # Configuración específica para servicios
+      LAMBDA_STAY_OPEN_MODE: 1
+      LAMBDA_DOCKER_NETWORK: dev-network
+      
+      # ECR configuración
+      ECR_ENDPOINT_STRATEGY: path
+      
+      # Step Functions configuración
+      STEPFUNCTIONS_LAMBDA_ENDPOINT: http://localhost:4566
+      
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./data/localstack:/var/lib/localstack"
+      - "./init-scripts:/etc/localstack/init/ready.d"
+      - "./localstack-config:/etc/localstack"
+    
+    networks:
+      - dev-network
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # MySQL - Base de datos
+  mysql:
+    image: mysql:8.0
+    container_name: dev-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: db_template
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+      MYSQL_ROOT_PASSWORD: root_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d  # Para scripts de inicialización
+    networks:
+      - dev-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # PHPMyAdmin - Gestión de MySQL
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: dev-phpmyadmin
+    ports:
+      - "8082:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root_password
+      MYSQL_ROOT_PASSWORD: root_password
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - dev-network
+
+  # MailHog - Servidor SMTP de pruebas
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: dev-mailhog
+    ports:
+      - "1025:1025"    # Puerto SMTP
+      - "8025:8025"    # Puerto Web UI
+    networks:
+      - dev-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8025"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # N8N - Automatización y workflows
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: dev-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      # Configuración básica
+      N8N_BASIC_AUTH_ACTIVE: true
+      N8N_BASIC_AUTH_USER: admin
+      N8N_BASIC_AUTH_PASSWORD: admin
+      
+      # Configuración de base de datos (usando MySQL)
+      DB_TYPE: mysqldb
+      DB_MYSQLDB_HOST: mysql
+      DB_MYSQLDB_PORT: 3306
+      DB_MYSQLDB_DATABASE: n8n_db
+      DB_MYSQLDB_USER: admin
+      DB_MYSQLDB_PASSWORD: admin
+      
+      # Configuración de email (usando MailHog)
+      N8N_EMAIL_MODE: smtp
+      N8N_SMTP_HOST: mailhog
+      N8N_SMTP_PORT: 1025
+      N8N_SMTP_USER: ""
+      N8N_SMTP_PASS: ""
+      N8N_SMTP_SENDER: n8n@localhost
+      
+      # Configuración adicional
+      WEBHOOK_URL: http://localhost:5678
+      N8N_HOST: 0.0.0.0
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      NODE_ENV: development
+      
+      # Persistencia
+      N8N_USER_FOLDER: /home/node/.n8n
+      
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-backups:/backups  # Para backups de workflows
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    networks:
+      - dev-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # AWS CLI - Herramienta para LocalStack (opcional)
+  aws-cli:
+    image: amazon/aws-cli:latest
+    container_name: dev-aws-cli
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ENDPOINT_URL: http://localstack:4566
+    volumes:
+      - "./aws-scripts:/aws-scripts"
+    networks:
+      - dev-network
+    depends_on:
+      localstack:
+        condition: service_healthy
+    profiles:
+      - tools  # Solo se ejecuta con: docker-compose --profile tools up
+
+# Volúmenes persistentes
+volumes:
+  mysql_data:
+    driver: local
+  n8n_data:
+    driver: local
+
+# Red compartida para todos los servicios
+networks:
+  dev-network:
+    driver: bridge
+    name: dev-network

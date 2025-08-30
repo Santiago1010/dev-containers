@@ -1,0 +1,30 @@
+.
+├── context
+│   └── structure.txt
+├── data
+│   └── localstack
+│       ├── cache
+│       │   ├── machine.json
+│       │   ├── server.test.pem
+│       │   ├── server.test.pem.crt
+│       │   └── server.test.pem.key
+│       ├── lib
+│       ├── state
+│       └── tmp
+├── database
+│   └── db_template.sql
+├── docker-compose.yml
+├── Dockerfile
+├── init-scripts
+├── localstack-config
+│   ├── conf.d
+│   └── init
+│       └── ready.d
+├── mysql-init
+├── README.md
+├── scripts
+└── .vscode
+    ├── extensions.json
+    └── settings.json
+
+17 directories, 11 files
